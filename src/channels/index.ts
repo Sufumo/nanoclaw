@@ -5,6 +5,9 @@
 
 // gmail
 
+// onebot (NapCat/QQ)
+import './onebot.js';
+
 // slack
 
 // telegram
