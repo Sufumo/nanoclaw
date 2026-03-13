@@ -12,10 +12,17 @@ import { logger } from '../logger.js';
 import { registerChannel, ChannelOpts } from './registry.js';
 
 // Read OneBot config from .env file
-const envConfig = readEnvFile(['ONEBOT_WS_URL', 'ONEBOT_ACCESS_TOKEN', 'ONEBOT_SELF_ID']);
-const ONEBOT_WS_URL = process.env.ONEBOT_WS_URL || envConfig.ONEBOT_WS_URL || 'ws://127.0.0.1:6700';
-const ONEBOT_ACCESS_TOKEN = process.env.ONEBOT_ACCESS_TOKEN || envConfig.ONEBOT_ACCESS_TOKEN || '';
-const ONEBOT_SELF_ID = process.env.ONEBOT_SELF_ID || envConfig.ONEBOT_SELF_ID || ''; // Bot's QQ number
+const envConfig = readEnvFile([
+  'ONEBOT_WS_URL',
+  'ONEBOT_ACCESS_TOKEN',
+  'ONEBOT_SELF_ID',
+]);
+const ONEBOT_WS_URL =
+  process.env.ONEBOT_WS_URL || envConfig.ONEBOT_WS_URL || 'ws://127.0.0.1:6700';
+const ONEBOT_ACCESS_TOKEN =
+  process.env.ONEBOT_ACCESS_TOKEN || envConfig.ONEBOT_ACCESS_TOKEN || '';
+const ONEBOT_SELF_ID =
+  process.env.ONEBOT_SELF_ID || envConfig.ONEBOT_SELF_ID || ''; // Bot's QQ number
 
 interface OneBotMessage {
   post_type?: string;
@@ -102,7 +109,10 @@ class OneBotChannel implements Channel {
       });
 
       this.ws.on('close', (code, reason) => {
-        logger.warn({ code, reason: reason.toString() }, 'OneBot: WebSocket closed');
+        logger.warn(
+          { code, reason: reason.toString() },
+          'OneBot: WebSocket closed',
+        );
         this.connected = false;
         this.scheduleReconnect();
       });
@@ -176,8 +186,8 @@ class OneBotChannel implements Channel {
 
     const senderId = msg.sender?.user_id || msg.user_id || 0;
     const senderName = isGroup
-      ? (msg.sender?.card || msg.sender?.nickname || String(senderId))
-      : (msg.sender?.nickname || String(senderId));
+      ? msg.sender?.card || msg.sender?.nickname || String(senderId)
+      : msg.sender?.nickname || String(senderId);
 
     // Extract text content from message.
     // OneBot sends @mentions as separate "at" segments; we only kept "text" before,
@@ -205,10 +215,18 @@ class OneBotChannel implements Channel {
       content = msg.raw_message;
     }
 
-    const timestamp = msg.time ? new Date(msg.time * 1000).toISOString() : new Date().toISOString();
+    const timestamp = msg.time
+      ? new Date(msg.time * 1000).toISOString()
+      : new Date().toISOString();
 
     // First, ensure the chat exists in the database
-    this.onChatMetadata(chatJid, timestamp, isGroup ? `Group ${msg.group_id}` : senderName, 'onebot', isGroup);
+    this.onChatMetadata(
+      chatJid,
+      timestamp,
+      isGroup ? `Group ${msg.group_id}` : senderName,
+      'onebot',
+      isGroup,
+    );
 
     // Then store the message
     const newMsg: NewMessage = {
@@ -238,19 +256,21 @@ class OneBotChannel implements Channel {
     const type = parts[1]; // 'group' or 'private'
     const targetId = parseInt(parts[2], 10);
 
-    const message: OneBotMessageSegment[] = [
-      { type: 'text', data: { text } },
-    ];
+    const message: OneBotMessageSegment[] = [{ type: 'text', data: { text } }];
 
     const action = type === 'group' ? 'send_group_msg' : 'send_private_msg';
-    const params = type === 'group'
-      ? { group_id: targetId, message }
-      : { user_id: targetId, message };
+    const params =
+      type === 'group'
+        ? { group_id: targetId, message }
+        : { user_id: targetId, message };
 
     await this.callApi(action, params);
   }
 
-  private callApi(action: string, params: Record<string, unknown>): Promise<unknown> {
+  private callApi(
+    action: string,
+    params: Record<string, unknown>,
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const echo = String(++this.callId);
 
